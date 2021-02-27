@@ -69,9 +69,24 @@ export class AuthService {
   }
   confirmUser(username: string, code: string) {
     this.authIsLoading.next(true);
+    //set userPool config
     const userData = {
       Username: username,
+      Pool:userPool
     };
+    const cognitUser = new CognitoUser(userData);
+    //code is by application passing it in here from the form the user filled out,& set force creation alias to true
+    cognitUser.confirmRegistration(code,true,(err,result)=>{
+      if(err){
+        this.authDidFail.next(true);
+        this.authIsLoading.next(false);
+        console.log(err);
+        return;
+      }
+      this.authDidFail.next(false);
+      this.authIsLoading.next(false);
+      this.router.navigate(['/']);//redirect sign in page
+    });
   }
   signIn(username: string, password: string): void {
     this.authIsLoading.next(true);
