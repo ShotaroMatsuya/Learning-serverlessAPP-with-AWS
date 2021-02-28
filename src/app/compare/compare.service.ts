@@ -23,8 +23,12 @@ export class CompareService {
     this.dataIsLoading.next(true);
     this.dataEdited.next(false);
     this.userData = data;
-      this.http.post('https://API_ID.execute-api.REGION.amazonaws.com/dev/', data, {
-        headers: new Headers({'Authorization': 'XX'})
+    this.authService.getAuthenticatedUser().getSession((err,session)=>{//retrieve current user from local-storage
+      if(err){
+        return;
+      }
+      this.http.post('https://zcym92xu58.execute-api.ap-northeast-1.amazonaws.com/dev/compare-yourself', data, {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})//local-storageにあるtokenIdをAPI gatewayに送信
       })
         .subscribe(
           (result) => {
@@ -38,17 +42,19 @@ export class CompareService {
             this.dataEdited.next(false);
           }
         );
+    });
   }
   onRetrieveData(all = true) {
     this.dataLoaded.next(null);
     this.dataLoadFailed.next(false);
-      let queryParam = '';
+    this.authService.getAuthenticatedUser().getSession((err,session)=>{
+      const queryParam = '?accessToken=' + session.getAccessToken().getJwtToken();
       let urlParam = 'all';
       if (!all) {
         urlParam = 'single';
       }
-      this.http.get('https://API_ID.execute-api.REGION.amazonaws.com/dev/' + urlParam + queryParam, {
-        headers: new Headers({'Authorization': 'XXX'})
+      this.http.get('https://zcym92xu58.execute-api.ap-northeast-1.amazonaws.com/dev/compare-yourself/' + urlParam + queryParam, {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})
       })
         .map(
           (response: Response) => response.json()
@@ -72,11 +78,15 @@ export class CompareService {
             this.dataLoaded.next(null);
           }
         );
+
+    });
   }
   onDeleteData() {
     this.dataLoadFailed.next(false);
-      this.http.delete('https://API_ID.execute-api.REGION.amazonaws.com/dev/', {
-        headers: new Headers({'Authorization': 'XXX'})
+    this.authService.getAuthenticatedUser().getSession((err,session)=>{
+
+      this.http.delete('https://zcym92xu58.execute-api.ap-northeast-1.amazonaws.com/dev/compare-yourself/?accessToken=xxx', {
+        headers: new Headers({'Authorization': session.getIdToken().getJwtToken()})
       })
         .subscribe(
           (data) => {
@@ -84,5 +94,6 @@ export class CompareService {
           },
           (error) => this.dataLoadFailed.next(true)
         );
+    });
   }
 }

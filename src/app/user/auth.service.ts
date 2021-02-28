@@ -12,6 +12,8 @@ import {
 	CognitoUserPool,
 	CognitoUserAttribute,
 	CognitoUser,
+  AuthenticationDetails,
+  CognitoUserSession
 } from 'amazon-cognito-identity-js';
 
 import { User } from './user.model';
@@ -94,21 +96,58 @@ export class AuthService {
       Username: username,
       Password: password
     };
+    // pass the user input filled out from the form
+    const authDetails = new AuthenticationDetails(authData);
+    //set userPool config
+    const userData = {
+      Username:username,
+      Pool:userPool
+    };
+    //pass the user data to initialize that user.
+    const cognitoUser = new CognitoUser(userData);
+    //pass the authentication details object together with an object
+    const that = this;
+    cognitoUser.authenticateUser(authDetails,{
+      onSuccess(result:CognitoUserSession){
+        that.authStatusChanged.next(true);
+        that.authDidFail.next(false);
+        that.authIsLoading.next(false);
+        console.log(result);
+      },
+      onFailure(err){
+        that.authDidFail.next(true);
+        that.authIsLoading.next(false);
+        console.log(err);
+      }
+    });
     this.authStatusChanged.next(true);
     return;
   }
   getAuthenticatedUser() {
+    return userPool.getCurrentUser();
   }
   logout() {
+    this.getAuthenticatedUser().signOut();
     this.authStatusChanged.next(false);
   }
   isAuthenticated(): Observable<boolean> {
+    //retrieve current user from local-storage
     const user = this.getAuthenticatedUser();
     const obs = Observable.create((observer) => {
       if (!user) {
         observer.next(false);
       } else {
-        observer.next(false);
+        user.getSession((err,session)=>{
+          if(err){
+            observer.next(false);
+          }else{
+            if(session.isValid()){
+              observer.next(true);
+            }else{
+              observer.next(false);
+            }
+          }
+        });
       }
       observer.complete();
     });
